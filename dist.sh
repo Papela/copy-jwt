@@ -8,5 +8,5 @@ cp -r src/images dist/
 
 echo "var exports = {};$(cat dist/background.js)" >dist/background.js
 
-rm copy-jwt.zip
-zip -r copy-jwt.zip dist/* -x "*.DS_Store"
+rm -f copy-jwt.zip
+(cd dist && zip -r ../copy-jwt.zip . -x "*.DS_Store")

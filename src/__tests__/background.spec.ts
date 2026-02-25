@@ -213,9 +213,7 @@ describe("finding json web tokens", () => {
   it("handles multiple tokens were found", async () => {
     setStorage({ token1: VALID_JWT_ENCODED, token2: VALID_JWT_ENCODED_2 });
     await executeScript();
-    expect(window.global.document.body.innerHTML).toMatch(VALID_JWT_ENCODED);
     expect(window.global.document.body.innerHTML).toMatch(VALID_JWT_DECODED);
-    expect(window.global.document.body.innerHTML).toMatch(VALID_JWT_ENCODED_2);
     expect(window.global.document.body.innerHTML).toMatch(VALID_JWT_DECODED_2);
   });
 

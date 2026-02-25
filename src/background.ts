@@ -35,6 +35,16 @@ export const setup = () => {
         }
 
         function copyToClipboard(text: string) {
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).catch(() => {
+              execCommandCopy(text);
+            });
+          } else {
+            execCommandCopy(text);
+          }
+        }
+
+        function execCommandCopy(text: string) {
           const ta = document.createElement("textarea");
           ta.style.cssText =
             "opacity:0; position:fixed; width:1px; height:1px; top:0; left:0;";
@@ -215,106 +225,142 @@ export const setup = () => {
         }
 
         function asModal(entries: TokenEntry[]) {
-          return `<div id="copy-jwt-modal">
-            <div id="copy-jwt-modal-content">
-              <div id="copy-jwt-modal-header">
-                <h1>
-                  copy-jwt
-                </h1>
-                <button id="copy-jwt-close-modal">
-                  Close
-                </button>
-              </div>
-              <div id="copy-jwt-modal-body">
-              ${
-                entries.length
-                  ? entries.reduce(
-                      (acc, entry, index) =>
-                        (acc += `<div style="margin: 8px 0px;">
-                          ${entry.label ? `<small style="color: gray">${entry.label}</small><br/>` : ""}
-                          ${
-                            entries.length === 1
-                              ? `<span style="color: red">Copied to clipboard!</span>`
-                              : `<button class="copy-jwt-copy-jwt" jwt="${entry.token}">Copy JWT</button>`
-                          }
-                          <pre>${prettyJwtPayload(entry.token)}</pre>
-                        </div>
-                        ${index < entries.length - 1 ? "<hr/>" : ""}`),
-                      ""
-                    )
-                  : "No token was found!"
-              }
-              </div>
-            </div>
-            <style>
-              #copy-jwt-modal {
-                display:flex;
-                position:absolute;
-                top:0;
-                left:0;
-                right:0;
-                bottom:0;
-                align-items: center;
-                justify-content: center;
-                background: rgba(0,0,0,0.2);
-                z-index: 2147483647;
+          const el = (tag: string, attrs?: Record<string, string>) => {
+            const e = document.createElement(tag);
+            if (attrs) Object.entries(attrs).forEach(([k, v]) => { e.setAttribute(k, v); });
+            return e;
+          };
+
+          const modal = el("div", { id: "copy-jwt-modal" });
+          const content = el("div", { id: "copy-jwt-modal-content" });
+          const header = el("div", { id: "copy-jwt-modal-header" });
+
+          const h1 = el("h1");
+          h1.textContent = "copy-jwt";
+          header.appendChild(h1);
+
+          const closeBtn = el("button", { id: "copy-jwt-close-modal" });
+          closeBtn.textContent = "Close";
+          closeBtn.addEventListener("click", () => { modal.remove(); });
+          header.appendChild(closeBtn);
+
+          content.appendChild(header);
+
+          const body = el("div", { id: "copy-jwt-modal-body" });
+
+          if (entries.length) {
+            entries.forEach((entry, index) => {
+              const row = el("div", { style: "margin: 8px 0px;" });
+
+              if (entry.label) {
+                const label = el("small", { style: "color: gray" });
+                label.textContent = entry.label;
+                row.appendChild(label);
+                row.appendChild(el("br"));
               }
 
-              #copy-jwt-modal * {
-                font-family: Arial, sans-serif;
-                font-size: 1em;
+              if (entries.length === 1) {
+                const copied = el("span", { style: "color: red" });
+                copied.textContent = "Copied to clipboard!";
+                row.appendChild(copied);
+              } else {
+                const copyBtn = el("button", { class: "copy-jwt-copy-jwt" });
+                copyBtn.textContent = "Copy JWT";
+                copyBtn.addEventListener("click", () => {
+                  copyToClipboard(entry.token);
+                });
+                row.appendChild(copyBtn);
               }
 
-              #copy-jwt-modal-content {
-                position: relative;
-                background:white;
-                box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
-                border-bottom:1px solid gray;
-              }
+              const pre = el("pre");
+              pre.textContent = prettyJwtPayload(entry.token);
+              row.appendChild(pre);
 
-              #copy-jwt-modal-header {
-                padding: 8px;
-                top: 0;
-                left: 0;
-                right: 0;
-                box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
-                display: flex;
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-              }
+              body.appendChild(row);
 
-              #copy-jwt-modal-body {
-                max-height: 80vh;
-                overflow: scroll;
-                padding: 8px;
+              if (index < entries.length - 1) {
+                body.appendChild(el("hr"));
               }
+            });
+          } else {
+            body.textContent = "No token was found!";
+          }
 
-              #copy-jwt-modal button {
-                background: white;
-                border: 1px solid rgba(0,0,0,0.3);
-                border-radius: 5px;
-                padding: 2px 5px;
-              }
+          content.appendChild(body);
+          modal.appendChild(content);
 
-              #copy-jwt-modal button:hover {
-                background: rgba(0,0,0,0.1);
-              }
+          const style = el("style");
+          style.textContent = `
+            #copy-jwt-modal {
+              display:flex;
+              position:absolute;
+              top:0;
+              left:0;
+              right:0;
+              bottom:0;
+              align-items: center;
+              justify-content: center;
+              background: rgba(0,0,0,0.2);
+              z-index: 2147483647;
+            }
 
-              #copy-jwt-modal pre {
-                background: rgba(0,0,0,0.02);
-                padding: 8px;
-                border: 1px solid rgba(0,0,0,0.3);
-                border-radius: 5px;
-                font-family: monospace;
-                margin: 5px 0;
-              }
+            #copy-jwt-modal * {
+              font-family: Arial, sans-serif;
+              font-size: 1em;
+            }
 
-              #copy-jwt-modal hr {
-                margin: 20px 0;
-              }
-            </style>
-          <div>`;
+            #copy-jwt-modal-content {
+              position: relative;
+              background:white;
+              box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+              border-bottom:1px solid gray;
+            }
+
+            #copy-jwt-modal-header {
+              padding: 8px;
+              top: 0;
+              left: 0;
+              right: 0;
+              box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+              display: flex;
+              flex-direction: row;
+              justify-content: space-between;
+              align-items: center;
+            }
+
+            #copy-jwt-modal-body {
+              max-height: 80vh;
+              overflow: scroll;
+              padding: 8px;
+            }
+
+            #copy-jwt-modal button {
+              background: white;
+              border: 1px solid rgba(0,0,0,0.3);
+              border-radius: 5px;
+              padding: 2px 5px;
+            }
+
+            #copy-jwt-modal button:hover {
+              background: rgba(0,0,0,0.1);
+            }
+
+            #copy-jwt-modal pre {
+              background: rgba(0,0,0,0.02);
+              padding: 8px;
+              border: 1px solid rgba(0,0,0,0.3);
+              border-radius: 5px;
+              font-family: monospace;
+              margin: 5px 0;
+            }
+
+            #copy-jwt-modal hr {
+              margin: 20px 0;
+            }
+          `;
+          modal.appendChild(style);
+
+          return modal;
         }
 
         const plainTokens: TokenEntry[] = findJwtTokens(localStorage).map(
@@ -336,22 +382,7 @@ export const setup = () => {
           copyToClipboard(allTokens[0].token);
         }
 
-        document.body.insertAdjacentHTML("beforeend", asModal(allTokens));
-
-        document
-          .getElementById("copy-jwt-close-modal")
-          ?.addEventListener("click", () => {
-            document.getElementById("copy-jwt-modal")?.remove();
-          });
-
-        document.querySelectorAll(".copy-jwt-copy-jwt").forEach((button) => {
-          button.addEventListener("click", (event) => {
-            const button = event.target as HTMLButtonElement | null;
-            if (button) {
-              copyToClipboard(button.getAttribute("jwt") as string);
-            }
-          });
-        });
+        document.body.appendChild(asModal(allTokens));
       }) as () => void,
     });
   });

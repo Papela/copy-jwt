@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "chrome extension which searches a jwt token in local storage and copies it to the clipboard",
   "scripts": {
-    "dist": "./dist.sh",
+    "dist": "node dist.js",
     "build": "tsc --outDir dist",
     "test": "jest --watch",
     "coverage": "jest --coverage"
